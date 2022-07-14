@@ -14,7 +14,7 @@
 // AMultiplayerPluginUE5Character
 
 AMultiplayerPluginUE5Character::AMultiplayerPluginUE5Character() : OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleted)),
-OnFindSessionCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionComplete))
+OnFindSessionCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionComplete)), OnJoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -113,6 +113,7 @@ void AMultiplayerPluginUE5Character::CreateGameSession()
 	SessionSettings->bShouldAdvertise = true;
 	SessionSettings->bAllowInvites = true;
 	SessionSettings->bUsesPresence = true;
+	SessionSettings->Set(FName("MatchType"), FString("FreeForAll"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
 const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
 	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings);
 }
@@ -142,6 +143,11 @@ void AMultiplayerPluginUE5Character::OnCreateSessionCompleted(FName SessionName,
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Session created successfully %s"), *SessionName.ToString()));
 		}
+		UWorld* World = GetWorld();
+		if(World)
+		{
+			World->ServerTravel("/Game/ThirdPersonCPP/Maps/Lobby?listen");
+		}
 	}
 	else
 	{
@@ -155,13 +161,30 @@ void AMultiplayerPluginUE5Character::OnCreateSessionCompleted(FName SessionName,
 
 void AMultiplayerPluginUE5Character::OnFindSessionComplete( bool bWasSuccessful)
 {
+	if(!OnlineSessionInterface.IsValid())
+	{
+		return;
+	}
 	for (auto Result : SessionSearch->SearchResults)
 	{
 		FString Id = Result.GetSessionIdStr()	;
 		FString User = Result.Session.OwningUserName;
+		FString MatchType;
+		Result.Session.SessionSettings.Get(FName("MatchType"), MatchType);
 		if(GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("ID %s, User %s"), *Id, *User));
+		}
+		if(MatchType == "FreeForAll")
+		{
+			if(GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("Found a session %s, MatchType %s"), *Id, *MatchType));
+			}
+			OnlineSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(OnJoinSessionCompleteDelegate);
+			const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+			OnlineSessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, Result);
+			 
 		}
 	}
 	// Called when the session search attempt is complete
@@ -178,6 +201,48 @@ void AMultiplayerPluginUE5Character::OnFindSessionComplete( bool bWasSuccessful)
 		if(GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Failed to find session")));
+		}
+		 
+	}
+}
+
+void AMultiplayerPluginUE5Character::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
+{
+	if(!OnlineSessionInterface.IsValid())
+	{
+		return;
+	}
+	if(FString Address; OnlineSessionInterface->GetResolvedConnectString(NAME_GameSession, Address))
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Joining %s"), *Address));
+		}
+		APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+		if(PlayerController)
+		{
+			PlayerController->ClientTravel(Address, ETravelType::TRAVEL_Absolute);
+		}
+	};
+	// Called when the join session attempt is complete
+	if (Result == EOnJoinSessionCompleteResult::Success)
+	{
+		// If the join was successful, we'll join the session
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Joined session successfully %s"), *SessionName.ToString()));
+		}
+		UWorld* World = GetWorld();
+		if(World)
+		{
+			World->ServerTravel("/Game/ThirdPersonCPP/Maps/Lobby?listen");
+		}
+	}
+	else
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Failed to join session")));
 		}
 		 
 	}

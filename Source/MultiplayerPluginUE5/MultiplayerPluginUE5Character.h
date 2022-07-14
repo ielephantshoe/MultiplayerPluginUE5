@@ -76,12 +76,12 @@ UFUNCTION(BlueprintCallable)
  
 	void OnCreateSessionCompleted(FName SessionName, bool bWasSuccessful);
 	void OnFindSessionComplete(bool bWasSuccessful);
-	
+	void OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result);
 private:
 	 
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
 	FOnFindSessionsCompleteDelegate OnFindSessionCompleteDelegate;
 	TSharedPtr<FOnlineSessionSearch> SessionSearch;
-	
+	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
 };
 
