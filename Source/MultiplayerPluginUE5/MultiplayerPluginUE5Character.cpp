@@ -9,10 +9,12 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Interfaces/OnlineSessionInterface.h"
 #include "OnlineSubsystem.h"
+#include "OnlineSessionSettings.h"
 //////////////////////////////////////////////////////////////////////////
 // AMultiplayerPluginUE5Character
 
-AMultiplayerPluginUE5Character::AMultiplayerPluginUE5Character() : OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleted))
+AMultiplayerPluginUE5Character::AMultiplayerPluginUE5Character() : OnCreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionCompleted)),
+OnFindSessionCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionComplete))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -93,10 +95,41 @@ void AMultiplayerPluginUE5Character::SetupPlayerInputComponent(class UInputCompo
 
 void AMultiplayerPluginUE5Character::CreateGameSession()
 {
-	if(OnlineSessionInterface.IsValid())
+	if(!OnlineSessionInterface.IsValid())
 	{
-		
+		return;
 	}
+	auto ExistingSession =  OnlineSessionInterface->GetNamedSession(NAME_GameSession);
+	if(ExistingSession!=nullptr)
+	{
+		OnlineSessionInterface->DestroySession(NAME_GameSession);
+	}
+	OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(OnCreateSessionCompleteDelegate);
+	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
+	SessionSettings->bIsLANMatch = false;
+	SessionSettings->NumPublicConnections = 4;
+	SessionSettings->bAllowJoinInProgress = true;
+	SessionSettings->bAllowJoinViaPresence = true;
+	SessionSettings->bShouldAdvertise = true;
+	SessionSettings->bAllowInvites = true;
+	SessionSettings->bUsesPresence = true;
+const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings);
+}
+
+void AMultiplayerPluginUE5Character::JoinGameSession()
+{
+	if(!OnlineSessionInterface.IsValid())
+	{
+		return;
+	}
+	OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(OnFindSessionCompleteDelegate);
+	 SessionSearch = MakeShareable(new FOnlineSessionSearch());
+	SessionSearch->MaxSearchResults = 1000;
+	SessionSearch->bIsLanQuery=false;
+	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
+	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
+	OnlineSessionInterface->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
 }
 
 void AMultiplayerPluginUE5Character::OnCreateSessionCompleted(FName SessionName, bool bWasSuccessful)
@@ -105,11 +138,47 @@ void AMultiplayerPluginUE5Character::OnCreateSessionCompleted(FName SessionName,
 	if (bWasSuccessful)
 	{
 		// If the session was created successfully, we'll join it
-	  
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Session created successfully %s"), *SessionName.ToString()));
+		}
 	}
 	else
 	{
-		// If the session was not created successfully, we'll try again
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Failed to create session")));
+		}
+		 
+	}
+}
+
+void AMultiplayerPluginUE5Character::OnFindSessionComplete( bool bWasSuccessful)
+{
+	for (auto Result : SessionSearch->SearchResults)
+	{
+		FString Id = Result.GetSessionIdStr()	;
+		FString User = Result.Session.OwningUserName;
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 15.f, FColor::Green, FString::Printf(TEXT("ID %s, User %s"), *Id, *User));
+		}
+	}
+	// Called when the session search attempt is complete
+	if (bWasSuccessful)
+	{
+		// If the session was found successfully, we'll join it
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Session found successfully  ") ));
+		}
+	}
+	else
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Failed to find session")));
+		}
 		 
 	}
 }

@@ -70,14 +70,18 @@ public:
 protected:
 	UFUNCTION(BlueprintCallable)
 	void CreateGameSession();
+UFUNCTION(BlueprintCallable)
+	void JoinGameSession();
 
-	UFUNCTION(BlueprintCallable)
+ 
 	void OnCreateSessionCompleted(FName SessionName, bool bWasSuccessful);
+	void OnFindSessionComplete(bool bWasSuccessful);
 	
 private:
 	 
 	FOnCreateSessionCompleteDelegate OnCreateSessionCompleteDelegate;
-	
+	FOnFindSessionsCompleteDelegate OnFindSessionCompleteDelegate;
+	TSharedPtr<FOnlineSessionSearch> SessionSearch;
 	
 };
 
