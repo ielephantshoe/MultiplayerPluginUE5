@@ -3156,6 +3156,41 @@
 					}
 				]
 			}
+		},
+		{
+			"File": "../../../MultiplayerPluginUE5/Plugins/PMultiPlayer/PMultiPlayer.uplugin",
+			"Descriptor": 
+			{
+				"FileVersion": 3,
+				"Version": 1,
+				"VersionName": "1.0",
+				"FriendlyName": "PMultiPlayer",
+				"Description": "A MultiPlayer Session Component",
+				"Category": "Other",
+				"CreatedBy": "Patrick Kelly",
+				"CreatedByURL": "",
+				"DocsURL": "",
+				"MarketplaceURL": "",
+				"SupportURL": "",
+				"CanContainContent": true,
+				"Modules": [
+					{
+						"Name": "PMultiPlayer",
+						"Type": "Runtime",
+						"LoadingPhase": "Default"
+					}
+				],
+				"Plugins": [
+					{
+						"Name": "OnlineSubsystem",
+						"Enabled": true
+					},
+					{
+						"Name": "OnlineSubsystemSteam",
+						"Enabled": true
+					}
+				]
+			}
 		}
 	]
 }

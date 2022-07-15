@@ -753,6 +753,12 @@
 			"Assets": [
 				"/Engine/EngineSky/M_SimpleSkyDome"
 			]
+		},
+		{
+			"ShaderMapHash": "F6D8F7E71C4B6ADA3F8FE0DBDE6DD5F15F09E301",
+			"Assets": [
+				"/Game/ThirdPerson/Maps/Lobby"
+			]
 		}
 	]
 }
