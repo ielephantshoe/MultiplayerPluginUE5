@@ -14,5 +14,30 @@ class PMULTIPLAYER_API UMenu : public UUserWidget
 public:
 	UFUNCTION(BlueprintCallable)
 	void MenuSetup();
- 
+
+	UFUNCTION(BlueprintCallable)
+	void MenuTearDown();
+
+protected:
+	virtual bool Initialize() override;
+    virtual void OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld) override;
+	
+private:
+	UPROPERTY(meta = (BindWidget))
+	class UButton* JoinButton;
+	
+	UPROPERTY(meta = (BindWidget))
+	 UButton* HostButton;
+
+	UFUNCTION()
+	 void HostButtonPressed();
+
+	UFUNCTION()
+	void JoinButtonPressed();
+
+	// THe Subsystem that handles the online multiplayer tasks
+	class UPMultiPlayerGISubsystem* GISubsystem;
+
+
+	
 };
